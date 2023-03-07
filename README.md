@@ -22,35 +22,34 @@ import (
 func main() {
 	readable := true
 	srcFilePath := "nmap-service-probes"
-	probes := parser.ParseNmap(srcFilePath)
+	probes, err := parser.ParseNmap(srcFilePath)
+	if err != nil {
+		panic(err)
+	}
 
 	// Convert the probes slice to JSON
 	probesJSON, err := json.Marshal(probes)
 	if err != nil {
-		fmt.Println(err)
-		os.Exit(1)
+		panic(err)
 	}
 
 	// Save the probes JSON to a file
 	err = os.WriteFile(srcFilePath+".json", probesJSON, 0644)
 	if err != nil {
-		fmt.Println(err)
-		os.Exit(1)
+		panic(err)
 	}
 
 	if readable {
 		// Convert the probes slice to JSON
 		probesJSON, err := json.MarshalIndent(probes, "", "    ")
 		if err != nil {
-			fmt.Println(err)
-			os.Exit(1)
+			panic(err)
 		}
 
 		// Save the probes JSON to a file
 		err = os.WriteFile(srcFilePath+"_Readable.json", probesJSON, 0644)
 		if err != nil {
-			fmt.Println(err)
-			os.Exit(1)
+			panic(err)
 		}
 	}
 

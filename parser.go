@@ -2,7 +2,7 @@ package parser
 
 import (
 	"bufio"
-	"fmt"
+	"github.com/pkg/errors"
 	"os"
 	"reflect"
 	"strings"
@@ -16,7 +16,7 @@ type VInfo struct {
 	Version           string    `json:"version"`
 	Info              string    `json:"info"`
 	Hostname          string    `json:"hostname"`
-	Operatingsystem   string    `json:"operatingsystem"`
+	OperatingSystem   string    `json:"operatingsystem"`
 	DeviceType        string    `json:"devicetype"`
 	Cpe               []cpe.CPE `json:"cpe"`
 }
@@ -30,12 +30,12 @@ type Match struct {
 
 type Probe struct {
 	Protocol     string   `json:"protocol"`
-	Probename    string   `json:"probename"`
-	Probestring  string   `json:"probestring"`
+	ProbeName    string   `json:"probename"`
+	ProbeString  string   `json:"probestring"`
 	Ports        []string `json:"ports"`
-	Sslports     []string `json:"sslports"`
-	Tcpwrappedms string   `json:"tcpwrappedms"`
-	Totalwaitms  string   `json:"totalwaitms"`
+	SslPorts     []string `json:"sslports"`
+	TcpWrappedMs string   `json:"tcpwrappedms"`
+	TotalWaitMs  string   `json:"totalwaitms"`
 	Rarity       string   `json:"rarity"`
 	Fallback     string   `json:"fallback"`
 	Matches      []Match  `json:"matches"`
@@ -45,71 +45,89 @@ func (x Probe) IsProbeEmpty() bool {
 	return reflect.DeepEqual(x, Probe{})
 }
 
-var vInfoSplitFlag = []string{"p/", "v/", "i/", "h/", "o/", "d/"}
-
-func handleVInfo(src string) (vInfo VInfo, err error) {
-	for _, splitFlag := range vInfoSplitFlag {
-		isFlagInSrc := strings.Index(src, splitFlag)
-
-		if isFlagInSrc != -1 {
-			ret := ""
-			end := strings.Index(src[isFlagInSrc+len(splitFlag):], "/")
-			if end == -1 {
-				continue
-			}
-			ret = src[isFlagInSrc+len(splitFlag) : isFlagInSrc+len(splitFlag)+end]
-
-			switch splitFlag {
-			case "p/":
-				vInfo.VendorProductName = ret
-			case "v/":
-				vInfo.Version = ret
-			case "i/":
-				vInfo.Info = ret
-			case "h/":
-				vInfo.Hostname = ret
-			case "o/":
-				vInfo.Operatingsystem = ret
-			case "d/":
-				vInfo.DeviceType = ret
-			default:
-			}
-
+func handleVInfoField(src, flagStr string) (ret string, err error) {
+	isFlagInSrc := strings.Index(src, flagStr)
+	if isFlagInSrc != -1 {
+		end := strings.Index(src[isFlagInSrc+len(flagStr):], "/")
+		if end == -1 {
+			return "", errors.New("vInfo field end is wrong")
 		}
-
-	}
-
-	var cpesStr string
-	cpe22Flag := "cpe:/"
-	isCpe22FlagInSrc := strings.Index(src, cpe22Flag)
-	if isCpe22FlagInSrc != -1 {
-		cpesStr = src[isCpe22FlagInSrc : len(src)-1]
-	}
-
-	cpe23Flag := "cpe:2.3"
-	isCpe23FlagInSrc := strings.LastIndex(src, cpe23Flag)
-	if isCpe23FlagInSrc != -1 {
-		cpesStr = src[isCpe23FlagInSrc : len(src)-1]
-	}
-
-	cpes := strings.Split(cpesStr, " ")
-	for _, c := range cpes {
-		cRet, err := cpe.ParseCPE(c)
-		if err != nil {
-			continue
-		}
-		vInfo.Cpe = append(vInfo.Cpe, *cRet)
+		ret = src[isFlagInSrc+len(flagStr) : isFlagInSrc+len(flagStr)+end]
 	}
 
 	return
 }
 
-func ParseNmap(srcFilePath string) (probes []Probe) {
+func handleVInfo(src string) (vInfo VInfo, err error) {
+	fieldP, err := handleVInfoField(src, "p/")
+	if err != nil {
+		return
+	}
+	vInfo.VendorProductName = fieldP
+
+	fieldV, err := handleVInfoField(src, "v/")
+	if err != nil {
+		return
+	}
+	vInfo.Version = fieldV
+
+	fieldI, err := handleVInfoField(src, "i/")
+	if err != nil {
+		return
+	}
+	vInfo.Info = fieldI
+
+	fieldH, err := handleVInfoField(src, "h/")
+	if err != nil {
+		return
+	}
+	vInfo.Hostname = fieldH
+
+	fieldO, err := handleVInfoField(src, "o/")
+	if err != nil {
+		return
+	}
+	vInfo.OperatingSystem = fieldO
+
+	fieldD, err := handleVInfoField(src, "d/")
+	if err != nil {
+		return
+	}
+	vInfo.DeviceType = fieldD
+
+	// CPE handle logic
+	cpeSrcStr := ""
+	cpeFlag := "cpe:/"
+	isCpe22FlagInSrc := strings.Index(src, cpeFlag)
+	if isCpe22FlagInSrc != -1 {
+		cpeSrcStr = src[isCpe22FlagInSrc : len(src)-1]
+	} else {
+		cpeFlag = "cpe:2.3"
+		isCpe23FlagInSrc := strings.LastIndex(src, cpeFlag)
+		if isCpe23FlagInSrc != -1 {
+			cpeSrcStr = src[isCpe23FlagInSrc : len(src)-1]
+		}
+	}
+
+	cpeSlice := strings.Split(cpeSrcStr, " ")
+	if len(cpeSlice) > 0 {
+		for _, c := range cpeSlice {
+			cRet, err := cpe.ParseCPE(c)
+			if err != nil {
+				continue
+			}
+			vInfo.Cpe = append(vInfo.Cpe, *cRet)
+		}
+	}
+
+	return
+}
+
+func ParseNmap(srcFilePath string) (probes []Probe, err error) {
 	// Open the nmap-service-probes file
 	file, err := os.Open(srcFilePath)
 	if err != nil {
-		fmt.Println(err)
-		os.Exit(1)
+		return
 	}
 	defer file.Close()
 
@@ -131,35 +149,34 @@ func ParseNmap(srcFilePath string) (probes []Probe) {
 		// If the line starts with "Probe", start a new probe
 		if strings.HasPrefix(line, "Probe ") {
 			// If we have an existing probe, append it to the slice of probes
-			if currentProbe.Probename != "" {
+			if currentProbe.ProbeName != "" {
 				probes = append(probes, currentProbe)
 			}
 
 			// Create a new probe with the name and default values
 			currentProbe = Probe{
-				Probename:    "",
+				ProbeName:    "",
 				Protocol:     "",
-				Probestring:  "",
+				ProbeString:  "",
 				Ports:        nil,
-				Sslports:     nil,
-				Tcpwrappedms: "",
-				Totalwaitms:  "",
+				SslPorts:     nil,
+				TcpWrappedMs: "",
+				TotalWaitMs:  "",
 				Rarity:       "",
 				Fallback:     "",
 				Matches:      nil,
 			}
 
 			lineSeg := strings.SplitN(line, " ", 4)
-			if lineSeg[1] != "TCP" && lineSeg[1] != "UDP" {
-				fmt.Println("不支持的协议")
+			if lineSeg[1] != "TCP" && lineSeg[1] != "UDP" { // unsupported protocol
 				continue
 			}
 			currentProbe.Protocol = lineSeg[1]
-			currentProbe.Probename = lineSeg[2]
+			currentProbe.ProbeName = lineSeg[2]
 
-			probestringSrc := strings.TrimLeft(lineSeg[3], "q|")
-			probestring := strings.TrimRight(probestringSrc, "|")
-			currentProbe.Probestring = probestring
+			probeStringSrc := strings.TrimLeft(lineSeg[3], "q|")
+			probeString := strings.TrimRight(probeStringSrc, "|")
+			currentProbe.ProbeString = probeString
 
 		} else if strings.HasPrefix(line, "match ") || strings.HasPrefix(line, "softmatch ") {
 			matchSeg := strings.SplitN(line, " ", 3)
@@ -195,11 +212,11 @@ func ParseNmap(srcFilePath string) (probes []Probe) {
 		} else if strings.HasPrefix(line, "ports ") {
 			currentProbe.Ports = strings.Split(line[len("ports "):], ",")
 		} else if strings.HasPrefix(line, "sslports ") {
-			currentProbe.Sslports = strings.Split(line[len("sslports "):], ",")
+			currentProbe.SslPorts = strings.Split(line[len("sslports "):], ",")
 		} else if strings.HasPrefix(line, "totalwaitms ") {
-			currentProbe.Totalwaitms = line[len("totalwaitms "):]
+			currentProbe.TotalWaitMs = line[len("totalwaitms "):]
 		} else if strings.HasPrefix(line, "tcpwrappedms ") {
-			currentProbe.Tcpwrappedms = line[len("tcpwrappedms "):]
+			currentProbe.TcpWrappedMs = line[len("tcpwrappedms "):]
 		} else if strings.HasPrefix(line, "rarity ") {
 			currentProbe.Rarity = line[len("rarity "):]
 		} else if strings.HasPrefix(line, "fallback ") {

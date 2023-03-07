@@ -15,8 +15,10 @@ func TestHandleVersionInfo(t *testing.T) {
 
 func TestParseNmap(t *testing.T) {
 	srcFilePath := "nmap-service-probes"
-	probes := ParseNmap(srcFilePath)
-
+	probes, err := ParseNmap(srcFilePath)
+	if err != nil {
+		panic(err)
+	}
 	// Convert the probes slice to JSON
 	probesJSON, err := json.Marshal(probes)
 	if err != nil {
