@@ -62,3 +62,26 @@ func TestParseNmapAndToJson(t *testing.T) {
 		}
 	}
 }
+
+//func TestHelperP(t *testing.T) {
+//	// Filters out unprintable characters.
+//	utf16Str := `W\0O\0R\0K\0G\0R\0O\0U\0P\0`
+//	asciiApprox := cpe.HelperP(utf16Str)
+//	assert.Equal(t, "WORKGROUP", asciiApprox)
+//}
+
+func TestHelperSubst(t *testing.T) {
+	// Makes substitutions
+	input := "VanDyke VShell sshd version 2_2_3_578"
+	output := HelperSubst(input, "_", ".")
+	assert.Equal(t, "VanDyke VShell sshd version 2.2.3.578", output)
+}
+
+func TestHelperI(t *testing.T) {
+	// unpack
+	b := []byte{0x12, 0x34, 0x56, 0x78}
+	val1, _ := HelperI('>', b)
+	val2, _ := HelperI('<', b)
+	assert.Equal(t, 305419896, val1)
+	assert.Equal(t, 2018915346, val2)
+}
