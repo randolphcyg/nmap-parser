@@ -8,6 +8,10 @@ Convert nmap's nmap-service-probes files to go structs and support output as JSO
 go get "github.com/randolphcyg/nmap-parser"
 ```
 
+you can download the latest nmap probe file: [nmap-service-probes](https://github.com/nmap/nmap/blob/master/nmap-service-probes)
+
+and in the same directory, you can write the main func: 
+
 ```go
 package main
 
@@ -54,6 +58,5 @@ func main() {
 	}
 
 	fmt.Println("Done")
-
 }
 ```

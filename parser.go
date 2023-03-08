@@ -2,11 +2,11 @@ package parser
 
 import (
 	"bufio"
-	"github.com/pkg/errors"
 	"os"
 	"reflect"
 	"strings"
 
+	"github.com/pkg/errors"
 	"github.com/randolphcyg/cpe"
 )
 
