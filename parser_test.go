@@ -63,22 +63,19 @@ func TestParseNmapAndToJson(t *testing.T) {
 	}
 }
 
-//func TestHelperP(t *testing.T) {
-//	// Filters out unprintable characters.
-//	utf16Str := `W\0O\0R\0K\0G\0R\0O\0U\0P\0`
-//	asciiApprox := cpe.HelperP(utf16Str)
-//	assert.Equal(t, "WORKGROUP", asciiApprox)
-//}
+func TestHelperP(t *testing.T) {
+	utf16Str := "W\000O\000R\000K\000G\000R\000O\000U\000P\000"
+	asciiApprox := HelperP(utf16Str)
+	assert.Equal(t, "WORKGROUP", asciiApprox)
+}
 
 func TestHelperSubst(t *testing.T) {
-	// Makes substitutions
 	input := "VanDyke VShell sshd version 2_2_3_578"
 	output := HelperSubst(input, "_", ".")
 	assert.Equal(t, "VanDyke VShell sshd version 2.2.3.578", output)
 }
 
 func TestHelperI(t *testing.T) {
-	// unpack
 	b := []byte{0x12, 0x34, 0x56, 0x78}
 	val1, _ := HelperI('>', b)
 	val2, _ := HelperI('<', b)

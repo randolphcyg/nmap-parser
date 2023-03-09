@@ -4,26 +4,18 @@ import (
 	"errors"
 	"strings"
 	"unicode"
-	"unicode/utf16"
 )
 
 // HelperP Filters out unprintable characters.
-// TODO fix logic
-func HelperP(input string) string {
-	r := []rune(input)
-
-	tmp := utf16.Encode(r)
-
-	utf16Str := utf16.Decode(tmp)
-
-	filteredRunes := make([]rune, 0, len(utf16Str))
-	for _, r := range utf16Str {
-		if unicode.IsGraphic(r) {
-			filteredRunes = append(filteredRunes, r)
+func HelperP(str string) string {
+	var sb strings.Builder
+	for _, r := range str {
+		if unicode.IsPrint(r) {
+			sb.WriteRune(r)
 		}
 	}
 
-	return string(filteredRunes)
+	return sb.String()
 }
 
 // HelperSubst Makes substitutions in matches before they are printed.
