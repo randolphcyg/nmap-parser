@@ -45,6 +45,10 @@ func (x Probe) IsProbeEmpty() bool {
 	return reflect.DeepEqual(x, Probe{})
 }
 
+func (v VInfo) IsVInfoEmpty() bool {
+	return reflect.DeepEqual(v, VInfo{})
+}
+
 func handleVInfoField(src, flagStr string) (ret string, err error) {
 	isFlagInSrc := strings.Index(src, flagStr)
 	if isFlagInSrc != -1 {
