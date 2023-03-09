@@ -77,8 +77,32 @@ func TestHelperSubst(t *testing.T) {
 
 func TestHelperI(t *testing.T) {
 	b := []byte{0x12, 0x34, 0x56, 0x78}
-	val1, _ := HelperI('>', b)
-	val2, _ := HelperI('<', b)
+	val1 := HelperI(">", b)
+	val2 := HelperI("<", b)
 	assert.Equal(t, 305419896, val1)
 	assert.Equal(t, 2018915346, val2)
+}
+
+func TestFillHelperFuncOrVariable(t *testing.T) {
+	srcData := [][]byte{
+		[]byte("command"),
+		[]byte("gta6"),
+		[]byte("9527"),
+		[]byte("Mike"),
+		[]byte("You forget a thousand things every day"),
+		[]byte("2_2_3_578"),
+	}
+
+	str1, _ := FillHelperFuncOrVariable("i/game: $1; port: $P(2)/", srcData)
+	assert.Equal(t, "i/game: gta6; port: 9527/", str1)
+
+	str2, _ := FillHelperFuncOrVariable("i/name: $P(3); description: $P(4)/", srcData)
+	assert.Equal(t, "i/name: Mike; description: You forget a thousand things every day/", str2)
+
+	str3, _ := FillHelperFuncOrVariable("cpe:/a:vandyke:vshell:$SUBST(5,\"_\",\".\")/", srcData)
+	assert.Equal(t, "cpe:/a:vandyke:vshell:2.2.3.578/", str3)
+
+	str4, _ := FillHelperFuncOrVariable("v/15.00.$I(1,\">\")/", srcData)
+	assert.Equal(t, "v/15.00.1735680310/", str4)
+
 }
