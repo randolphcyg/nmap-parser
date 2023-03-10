@@ -112,3 +112,10 @@ func TestParseMatch(t *testing.T) {
 	match, _ := parseMatch(str)
 	assert.Equal(t, "", match.VersionInfo.DeviceType)
 }
+
+func TestParseMatchVInfoFieldOutOfOrder(t *testing.T) {
+	// the version info fields is out of order
+	str := "match amanda m|^ld\\.so\\.1: amandad: fatal: (libsunmath\\.so\\.1): open failed: No such file or directory\\n$| i/broken: $1 not found/ cpe:/a:amanda:amanda/ o/Windows/ p/Amanda backup system index server/\n\t"
+	match, _ := parseMatch(str)
+	assert.Equal(t, "Windows", match.VersionInfo.OperatingSystem)
+}

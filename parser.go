@@ -60,7 +60,7 @@ func handleVInfoField(src, flagStr string) (ret string, srcRet string, err error
 		}
 		ret = src[isFlagInSrc+len(flagStr) : isFlagInSrc+len(flagStr)+end]
 		if isFlagInSrc+len(flagStr)+end+1 <= len(src) {
-			srcRet = src[isFlagInSrc+len(flagStr)+end+1:]
+			srcRet = src[:isFlagInSrc] + src[isFlagInSrc+len(flagStr)+end+1:]
 		}
 	}
 
