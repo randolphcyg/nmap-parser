@@ -104,5 +104,11 @@ func TestFillHelperFuncOrVariable(t *testing.T) {
 
 	str4, _ := FillHelperFuncOrVariable("v/15.00.$I(1,\">\")/", srcData)
 	assert.Equal(t, "v/15.00.1735680310/", str4)
+}
 
+func TestParseMatch(t *testing.T) {
+	// string `i/broken: $1 not found/` has `d/`, the wrong logic maybe set the DeviceType by ` cpe:`
+	str := "match amanda m|^ld\\.so\\.1: amandad: fatal: (libsunmath\\.so\\.1): open failed: No such file or directory\\n$| p/Amanda backup system index server/ i/broken: $1 not found/ cpe:/a:amanda:amanda/\n\t"
+	match, _ := parseMatch(str)
+	assert.Equal(t, "", match.VersionInfo.DeviceType)
 }

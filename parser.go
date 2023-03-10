@@ -49,55 +49,78 @@ func (v VInfo) IsVInfoEmpty() bool {
 	return reflect.DeepEqual(v, VInfo{})
 }
 
-func handleVInfoField(src, flagStr string) (ret string, err error) {
+func handleVInfoField(src, flagStr string) (ret string, srcRet string, err error) {
+	src = strings.TrimSpace(src)
+	srcRet = src
 	isFlagInSrc := strings.Index(src, flagStr)
 	if isFlagInSrc != -1 {
 		end := strings.Index(src[isFlagInSrc+len(flagStr):], "/")
 		if end == -1 {
-			return "", errors.New("vInfo field end is wrong")
+			return "", src, errors.New("vInfo field end is wrong")
 		}
 		ret = src[isFlagInSrc+len(flagStr) : isFlagInSrc+len(flagStr)+end]
+		if isFlagInSrc+len(flagStr)+end+1 <= len(src) {
+			srcRet = src[isFlagInSrc+len(flagStr)+end+1:]
+		}
 	}
 
 	return
 }
 
 func handleVInfo(src string) (vInfo VInfo, err error) {
-	fieldP, err := handleVInfoField(src, "p/")
+	fieldP, src, err := handleVInfoField(src, "p/")
 	if err != nil {
 		return
 	}
 	vInfo.VendorProductName = fieldP
+	if src == "" {
+		return
+	}
 
-	fieldV, err := handleVInfoField(src, "v/")
+	fieldV, src, err := handleVInfoField(src, "v/")
 	if err != nil {
 		return
 	}
 	vInfo.Version = fieldV
+	if src == "" {
+		return
+	}
 
-	fieldI, err := handleVInfoField(src, "i/")
+	fieldI, src, err := handleVInfoField(src, "i/")
 	if err != nil {
 		return
 	}
 	vInfo.Info = fieldI
+	if src == "" {
+		return
+	}
 
-	fieldH, err := handleVInfoField(src, "h/")
+	fieldH, src, err := handleVInfoField(src, "h/")
 	if err != nil {
 		return
 	}
 	vInfo.Hostname = fieldH
+	if src == "" {
+		return
+	}
 
-	fieldO, err := handleVInfoField(src, "o/")
+	fieldO, src, err := handleVInfoField(src, "o/")
 	if err != nil {
 		return
 	}
 	vInfo.OperatingSystem = fieldO
+	if src == "" {
+		return
+	}
 
-	fieldD, err := handleVInfoField(src, "d/")
+	fieldD, src, err := handleVInfoField(src, "d/")
 	if err != nil {
 		return
 	}
 	vInfo.DeviceType = fieldD
+	if src == "" {
+		return
+	}
 
 	// CPE handle logic
 	cpeSrcStr := ""
@@ -122,6 +145,48 @@ func handleVInfo(src string) (vInfo VInfo, err error) {
 			}
 			vInfo.Cpe = append(vInfo.Cpe, *cRet)
 		}
+	}
+
+	return
+}
+
+func parseMatch(line string) (m Match, err error) {
+	line = strings.TrimSpace(line)
+	line = strings.Replace(line, "\n", "", -1)
+	matchSeg := strings.SplitN(line, " ", 3)
+	name := matchSeg[1]
+	regxSeg := strings.SplitN(matchSeg[2], "|", 3)
+	pattern := regxSeg[1]
+
+	patternFlag := ""
+	var versionInfo VInfo
+	if len(regxSeg) >= 3 {
+		versionInfoSeg := strings.SplitN(regxSeg[2], " ", 2)
+
+		if versionInfoSeg[0] != "" {
+			patternFlag = versionInfoSeg[0]
+		}
+
+		if len(versionInfoSeg) >= 2 {
+			tmp, errVInfo := handleVInfo(versionInfoSeg[1])
+			if err != nil {
+				m = Match{
+					Pattern:     pattern,
+					Name:        name,
+					PatternFlag: patternFlag,
+					VersionInfo: versionInfo,
+				}
+				return m, errVInfo
+			}
+			versionInfo = tmp
+		}
+	}
+
+	m = Match{
+		Pattern:     pattern,
+		Name:        name,
+		PatternFlag: patternFlag,
+		VersionInfo: versionInfo,
 	}
 
 	return
@@ -183,36 +248,11 @@ func ParseNmap(srcFilePath string) (probes []Probe, err error) {
 			currentProbe.ProbeString = probeString
 
 		} else if strings.HasPrefix(line, "match ") || strings.HasPrefix(line, "softmatch ") {
-			matchSeg := strings.SplitN(line, " ", 3)
-			name := matchSeg[1]
-			regxSeg := strings.SplitN(matchSeg[2], "|", 3)
-			pattern := regxSeg[1]
-
-			patternFlag := ""
-			var versionInfo VInfo
-			if len(regxSeg) >= 3 {
-				versionInfoSeg := strings.SplitN(regxSeg[2], " ", 2)
-
-				if versionInfoSeg[0] != "" {
-					patternFlag = versionInfoSeg[0]
-				}
-
-				if len(versionInfoSeg) >= 2 {
-					tmp, err := handleVInfo(versionInfoSeg[1])
-					if err != nil {
-						continue
-					}
-					versionInfo = tmp
-				}
+			m, err := parseMatch(line)
+			if err != nil {
+				continue
 			}
-
-			currentProbe.Matches = append(currentProbe.Matches, Match{
-				Pattern:     pattern,
-				Name:        name,
-				PatternFlag: patternFlag,
-				VersionInfo: versionInfo,
-			})
-
+			currentProbe.Matches = append(currentProbe.Matches, m)
 		} else if strings.HasPrefix(line, "ports ") {
 			currentProbe.Ports = strings.Split(line[len("ports "):], ",")
 		} else if strings.HasPrefix(line, "sslports ") {
