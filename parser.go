@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"os"
 	"reflect"
+	"strconv"
 	"strings"
 
 	"github.com/pkg/errors"
@@ -277,4 +278,75 @@ func ParseNmap(srcFilePath string) (probes []Probe, err error) {
 	probes = append(probes, currentProbe)
 
 	return
+}
+
+// UnquoteRawString raw string ==> string
+// Replaces the escape characters in the original string with the actual characters
+func UnquoteRawString(rawStr string) (string, error) {
+	str, err := strconv.Unquote(`"` + rawStr + `"`)
+	if err != nil {
+		return "", err
+	}
+
+	return str, nil
+}
+
+// FillVersionInfoFields Replace the versioninfo and CPE placeholder elements with the matched real values
+func FillVersionInfoFields(src [][]byte, match Match) VInfo {
+	tmpVerInfo := VInfo{}
+
+	if match.VersionInfo.Version != "" {
+		tmpVerInfo.Version, _ = FillHelperFuncOrVariable(match.VersionInfo.Version, src)
+	}
+	if match.VersionInfo.Info != "" {
+		tmpVerInfo.Info, _ = FillHelperFuncOrVariable(match.VersionInfo.Info, src)
+	}
+	if match.VersionInfo.Hostname != "" {
+		tmpVerInfo.Hostname, _ = FillHelperFuncOrVariable(match.VersionInfo.Hostname, src)
+	}
+	if match.VersionInfo.DeviceType != "" {
+		tmpVerInfo.DeviceType, _ = FillHelperFuncOrVariable(match.VersionInfo.DeviceType, src)
+	}
+	if match.VersionInfo.VendorProductName != "" {
+		tmpVerInfo.VendorProductName, _ = FillHelperFuncOrVariable(match.VersionInfo.VendorProductName, src)
+	}
+	if match.VersionInfo.OperatingSystem != "" {
+		tmpVerInfo.OperatingSystem, _ = FillHelperFuncOrVariable(match.VersionInfo.OperatingSystem, src)
+	}
+
+	for _, c := range match.VersionInfo.Cpe {
+		tmpCPE := cpe.CPE{}
+
+		if c.Version != "" {
+			tmpCPE.Version, _ = FillHelperFuncOrVariable(c.Version, src)
+		}
+		if c.Language != "" {
+			tmpCPE.Language, _ = FillHelperFuncOrVariable(c.Language, src)
+		}
+		if c.Vendor != "" {
+			tmpCPE.Vendor, _ = FillHelperFuncOrVariable(c.Vendor, src)
+		}
+		if c.Update != "" {
+			tmpCPE.Update, _ = FillHelperFuncOrVariable(c.Update, src)
+		}
+		if c.Other != "" {
+			tmpCPE.Other, _ = FillHelperFuncOrVariable(c.Other, src)
+		}
+		if c.TargetSw != "" {
+			tmpCPE.TargetSw, _ = FillHelperFuncOrVariable(c.TargetSw, src)
+		}
+		if c.SwEdition != "" {
+			tmpCPE.SwEdition, _ = FillHelperFuncOrVariable(c.SwEdition, src)
+		}
+		if c.TargetHw != "" {
+			tmpCPE.TargetHw, _ = FillHelperFuncOrVariable(c.TargetHw, src)
+		}
+		if c.Product != "" {
+			tmpCPE.Product, _ = FillHelperFuncOrVariable(c.Product, src)
+		}
+
+		tmpVerInfo.Cpe = append(tmpVerInfo.Cpe, tmpCPE)
+	}
+
+	return tmpVerInfo
 }
