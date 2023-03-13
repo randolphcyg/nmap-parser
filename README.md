@@ -1,6 +1,7 @@
 # nmap-parser
 
 Convert nmap's nmap-service-probe file into a go structure for service probing.
+Directly use the probe file for service identification, and make the rate higher than the nmap tool itself through custom logic.
 
 ## Usage
 
@@ -62,6 +63,8 @@ func main() {
 ```
 
 ### 2. Perform service probe on local port 3306
+
+
 
 ```go
 package main

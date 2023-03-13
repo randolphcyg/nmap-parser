@@ -68,7 +68,7 @@ func handleVInfoField(src, flagStr string) (ret string, srcRet string, err error
 	return
 }
 
-func handleVInfo(src string) (vInfo VInfo, err error) {
+func HandleVInfo(src string) (vInfo VInfo, err error) {
 	fieldP, src, err := handleVInfoField(src, "p/")
 	if err != nil {
 		return
@@ -151,7 +151,7 @@ func handleVInfo(src string) (vInfo VInfo, err error) {
 	return
 }
 
-func parseMatch(line string) (m Match, err error) {
+func ParseMatch(line string) (m Match, err error) {
 	line = strings.TrimSpace(line)
 	line = strings.Replace(line, "\n", "", -1)
 	matchSeg := strings.SplitN(line, " ", 3)
@@ -169,7 +169,7 @@ func parseMatch(line string) (m Match, err error) {
 		}
 
 		if len(versionInfoSeg) >= 2 {
-			tmp, errVInfo := handleVInfo(versionInfoSeg[1])
+			tmp, errVInfo := HandleVInfo(versionInfoSeg[1])
 			if err != nil {
 				m = Match{
 					Pattern:     pattern,
@@ -249,7 +249,7 @@ func ParseNmap(srcFilePath string) (probes []Probe, err error) {
 			currentProbe.ProbeString = probeString
 
 		} else if strings.HasPrefix(line, "match ") || strings.HasPrefix(line, "softmatch ") {
-			m, err := parseMatch(line)
+			m, err := ParseMatch(line)
 			if err != nil {
 				continue
 			}

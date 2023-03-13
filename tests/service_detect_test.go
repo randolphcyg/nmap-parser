@@ -1,4 +1,4 @@
-package main
+package tests
 
 import (
 	"fmt"
@@ -6,6 +6,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"testing"
 	"time"
 
 	"github.com/pkg/errors"
@@ -96,7 +97,7 @@ func ServiceDetect(host string, port int, probe parser.Probe) (serviceName strin
 	return
 }
 
-func main() {
+func TestServiceDetect(t *testing.T) {
 	srcFilePath := "nmap-service-probes"
 	probes, err := parser.ParseNmap(srcFilePath)
 	if err != nil {
@@ -116,12 +117,12 @@ func main() {
 		host = "127.0.0.1"
 	}
 
-	port := 6379
+	targetPort := 6379
 
 	serviceName := ""
 	info := parser.VInfo{}
 	for _, probe := range probes {
-		serviceNameTmp, infoTmp, err := ServiceDetect(host, port, probe)
+		serviceNameTmp, infoTmp, err := ServiceDetect(host, targetPort, probe)
 		if err != nil {
 			continue
 		}
