@@ -1,7 +1,6 @@
 package tests
 
 import (
-	"fmt"
 	"net"
 	"regexp"
 	"strconv"
@@ -11,6 +10,7 @@ import (
 
 	"github.com/pkg/errors"
 	parser "github.com/randolphcyg/nmap-parser"
+	"github.com/stretchr/testify/assert"
 )
 
 var (
@@ -135,9 +135,10 @@ func TestServiceDetect(t *testing.T) {
 	}
 
 	if serviceName != "" && !info.IsVInfoEmpty() {
-		fmt.Println(serviceName, info) // redis {Redis key-value store 7.0.8     [{ redislabs redis 7.0.8       }]}
+		assert.Equal(t, "redis", serviceName)
+		assert.Equal(t, "Redis key-value store", info.VendorProductName)
 	} else {
-		fmt.Println("no match service!")
+		assert.Equal(t, "", serviceName)
 	}
 
 }

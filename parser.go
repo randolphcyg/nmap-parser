@@ -13,12 +13,12 @@ import (
 
 // VInfo version info, include six optional fields and CPE
 type VInfo struct {
-	VendorProductName string    `json:"vendorproductname"`
+	VendorProductName string    `json:"vendorProductName"`
 	Version           string    `json:"version"`
 	Info              string    `json:"info"`
 	Hostname          string    `json:"hostname"`
-	OperatingSystem   string    `json:"operatingsystem"`
-	DeviceType        string    `json:"devicetype"`
+	OperatingSystem   string    `json:"operatingSystem"`
+	DeviceType        string    `json:"deviceType"`
 	Cpe               []cpe.CPE `json:"cpe"`
 }
 
@@ -26,17 +26,17 @@ type Match struct {
 	Pattern     string `json:"pattern"`
 	Name        string `json:"name"`
 	PatternFlag string `json:"pattern_flag"`
-	VersionInfo VInfo  `json:"versioninfo"`
+	VersionInfo VInfo  `json:"versionInfo"`
 }
 
 type Probe struct {
 	Protocol     string   `json:"protocol"`
-	ProbeName    string   `json:"probename"`
-	ProbeString  string   `json:"probestring"`
+	ProbeName    string   `json:"probeName"`
+	ProbeString  string   `json:"probeString"`
 	Ports        []string `json:"ports"`
-	SslPorts     []string `json:"sslports"`
-	TcpWrappedMs string   `json:"tcpwrappedms"`
-	TotalWaitMs  string   `json:"totalwaitms"`
+	SslPorts     []string `json:"sslPorts"`
+	TcpWrappedMs string   `json:"tcpWrappedMs"`
+	TotalWaitMs  string   `json:"totalWaitMs"`
 	Rarity       string   `json:"rarity"`
 	Fallback     string   `json:"fallback"`
 	Matches      []Match  `json:"matches"`
