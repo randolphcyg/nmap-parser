@@ -25,7 +25,7 @@ type VInfo struct {
 type Match struct {
 	Pattern     string `json:"pattern"`
 	Name        string `json:"name"`
-	PatternFlag string `json:"pattern_flag"`
+	PatternFlag string `json:"patternFlag"`
 	VersionInfo VInfo  `json:"versionInfo"`
 }
 
@@ -291,7 +291,7 @@ func UnquoteRawString(rawStr string) (string, error) {
 	return str, nil
 }
 
-// FillVersionInfoFields Replace the versioninfo and CPE placeholder elements with the matched real values
+// FillVersionInfoFields Replace the versionInfo and CPE placeholder elements with the matched real values
 func FillVersionInfoFields(src [][]byte, match Match) VInfo {
 	tmpVerInfo := VInfo{}
 
