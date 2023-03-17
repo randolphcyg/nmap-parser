@@ -49,11 +49,15 @@ func HelperI(sign string, b []byte) (val uint32) {
 }
 
 // FillHelperFuncOrVariable replace versionInfo helper functions and Variable
-func FillHelperFuncOrVariable(str string, src [][]byte) (string, error) {
+func FillHelperFuncOrVariable(str string, src [][]byte) string {
+	if str == "" {
+		return str
+	}
+
 	for _, p := range patternFlags {
 		re, err := regexp.Compile(p)
 		if err != nil {
-			return str, err
+			return str
 		}
 
 		matches := re.FindAllString(str, -1)
@@ -108,5 +112,5 @@ func FillHelperFuncOrVariable(str string, src [][]byte) (string, error) {
 
 	}
 
-	return str, nil
+	return str
 }

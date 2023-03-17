@@ -26,7 +26,7 @@ func TestParseNmap(t *testing.T) {
 	if err != nil {
 		panic(err)
 	}
-	fmt.Println(string(probesJSON))
+	fmt.Println(len(string(probesJSON)))
 }
 
 func TestParseNmapAndToJson(t *testing.T) {
@@ -94,16 +94,16 @@ func TestFillHelperFuncOrVariable(t *testing.T) {
 		[]byte("2_2_3_578"),
 	}
 
-	str1, _ := parser.FillHelperFuncOrVariable("i/game: $1; port: $P(2)/", srcData)
+	str1 := parser.FillHelperFuncOrVariable("i/game: $1; port: $P(2)/", srcData)
 	assert.Equal(t, "i/game: gta6; port: 9527/", str1)
 
-	str2, _ := parser.FillHelperFuncOrVariable("i/name: $P(3); description: $P(4)/", srcData)
+	str2 := parser.FillHelperFuncOrVariable("i/name: $P(3); description: $P(4)/", srcData)
 	assert.Equal(t, "i/name: Mike; description: You forget a thousand things every day/", str2)
 
-	str3, _ := parser.FillHelperFuncOrVariable("cpe:/a:vandyke:vshell:$SUBST(5,\"_\",\".\")/", srcData)
+	str3 := parser.FillHelperFuncOrVariable("cpe:/a:vandyke:vshell:$SUBST(5,\"_\",\".\")/", srcData)
 	assert.Equal(t, "cpe:/a:vandyke:vshell:2.2.3.578/", str3)
 
-	str4, _ := parser.FillHelperFuncOrVariable("v/15.00.$I(1,\">\")/", srcData)
+	str4 := parser.FillHelperFuncOrVariable("v/15.00.$I(1,\">\")/", srcData)
 	assert.Equal(t, "v/15.00.1735680310/", str4)
 }
 
