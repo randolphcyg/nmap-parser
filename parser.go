@@ -2,12 +2,12 @@ package parser
 
 import (
 	"bufio"
-	"github.com/pkg/errors"
 	"os"
 	"reflect"
 	"strconv"
 	"strings"
 
+	"github.com/pkg/errors"
 	"github.com/randolphcyg/cpe"
 )
 
@@ -51,6 +51,10 @@ func (v VInfo) IsVInfoEmpty() bool {
 }
 
 func handleVInfoField(src, flagStr string) (string, string, error) {
+	if src == "" {
+		return "", "", nil
+	}
+
 	src = strings.TrimSpace(src)
 	isFlagInSrc := strings.Index(src, flagStr)
 	if isFlagInSrc == -1 {
