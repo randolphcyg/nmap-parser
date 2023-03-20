@@ -51,7 +51,7 @@ func (v VInfo) IsVInfoEmpty() bool {
 }
 
 func handleVInfoField(src, flagStr string) (string, string, error) {
-	if src == "" {
+	if len(src) == 0 {
 		return "", "", nil
 	}
 
@@ -95,7 +95,7 @@ func HandleVInfo(src string) (vInfo VInfo, err error) {
 		}
 
 		field.set(fieldValue)
-		if src == "" {
+		if len(src) == 0 {
 			return
 		}
 	}

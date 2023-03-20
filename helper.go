@@ -50,7 +50,7 @@ func HelperI(sign string, b []byte) (val uint32) {
 
 // FillHelperFuncOrVariable replace versionInfo helper functions and Variable
 func FillHelperFuncOrVariable(str string, src [][]byte) string {
-	if str == "" {
+	if len(str) == 0 {
 		return str
 	}
 
