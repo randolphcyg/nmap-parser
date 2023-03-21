@@ -9,8 +9,9 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
-	parser "github.com/randolphcyg/nmap-parser"
 	"github.com/stretchr/testify/assert"
+
+	parser "github.com/randolphcyg/nmap-parser"
 )
 
 var (

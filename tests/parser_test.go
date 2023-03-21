@@ -6,8 +6,9 @@ import (
 	"os"
 	"testing"
 
-	"github.com/randolphcyg/nmap-parser"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/randolphcyg/nmap-parser"
 )
 
 func TestHandleVersionInfo(t *testing.T) {
