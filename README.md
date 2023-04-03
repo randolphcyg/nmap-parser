@@ -27,7 +27,7 @@ import (
 func main() {
 	readable := true
 	srcFilePath := "nmap-service-probes"
-	probes, err := parser.ParseNmap(srcFilePath)
+	probes, err := parser.ParseNmapServiceProbe(srcFilePath)
 	if err != nil {
 		panic(err)
 	}
@@ -88,7 +88,7 @@ var (
 	ErrRecRsp     = errors.New("Error receiving response")
 )
 
-func ServiceDetect(host string, port int, probe parser.Probe) (serviceName string, info parser.VInfo, err error) {
+func ServiceDetect(host string, port int, probe *parser.Probe) (serviceName string, info *parser.VInfo, err error) {
 	addr := net.JoinHostPort(host, strconv.Itoa(port))
 	conn, err := net.Dial(strings.ToLower(probe.Protocol), addr)
 	if err != nil {
@@ -150,7 +150,7 @@ func ServiceDetect(host string, port int, probe parser.Probe) (serviceName strin
 
 func main() {
 	srcFilePath := "nmap-service-probes"
-	probes, err := parser.ParseNmap(srcFilePath)
+	probes, err := parser.ParseNmapServiceProbe(srcFilePath)
 	if err != nil {
 		panic(err)
 	}
@@ -159,21 +159,21 @@ func main() {
 	port := 6379
 
 	serviceName := ""
-	info := parser.VInfo{}
+	info := parser.NewVInfo()
 	for _, probe := range probes {
 		serviceNameTmp, infoTmp, err := ServiceDetect(host, port, probe)
 		if err != nil {
 			continue
 		}
 
-		if serviceNameTmp != "" && !infoTmp.IsVInfoEmpty() {
+		if serviceNameTmp != "" && !infoTmp.IsEmpty() {
 			serviceName = serviceNameTmp
 			info = infoTmp
 		}
 
 	}
 
-	if serviceName != "" && !info.IsVInfoEmpty() {
+	if serviceName != "" && !info.IsEmpty() {
 		fmt.Println(serviceName, info) 
 	} else {
 		fmt.Println("no match service!")

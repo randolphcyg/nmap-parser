@@ -15,4 +15,4 @@
 # vendor/
 
 # do not upload convert result file
-.json
+*.json

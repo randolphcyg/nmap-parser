@@ -21,7 +21,7 @@ var (
 	ErrRecRsp     = errors.New("Error receiving response")
 )
 
-func ServiceDetect(host string, port int, probe parser.Probe) (serviceName string, info parser.VInfo, err error) {
+func ServiceDetect(host string, port int, probe *parser.Probe) (serviceName string, info *parser.VInfo, err error) {
 	addr := net.JoinHostPort(host, strconv.Itoa(port))
 	conn, err := net.Dial(strings.ToLower(probe.Protocol), addr)
 	if err != nil {
@@ -83,7 +83,7 @@ func ServiceDetect(host string, port int, probe parser.Probe) (serviceName strin
 
 func TestServiceDetect(t *testing.T) {
 	srcFilePath := "nmap-service-probes"
-	probes, err := parser.ParseNmap(srcFilePath)
+	probes, err := parser.ParseNmapServiceProbe(srcFilePath)
 	if err != nil {
 		panic(err)
 	}
@@ -92,21 +92,21 @@ func TestServiceDetect(t *testing.T) {
 	targetPort := 6379
 
 	serviceName := ""
-	info := parser.VInfo{}
+	info := parser.NewVInfo()
 	for _, probe := range probes {
 		serviceNameTmp, infoTmp, err := ServiceDetect(host, targetPort, probe)
 		if err != nil {
 			continue
 		}
 
-		if serviceNameTmp != "" && !infoTmp.IsVInfoEmpty() {
+		if serviceNameTmp != "" && !infoTmp.IsEmpty() {
 			serviceName = serviceNameTmp
 			info = infoTmp
 		}
 
 	}
 
-	if serviceName != "" && !info.IsVInfoEmpty() {
+	if serviceName != "" && !info.IsEmpty() {
 		assert.Equal(t, "redis", serviceName)
 		assert.Equal(t, "Redis key-value store", info.VendorProductName)
 	} else {

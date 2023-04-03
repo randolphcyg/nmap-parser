@@ -11,14 +11,19 @@ import (
 	"github.com/randolphcyg/nmap-parser"
 )
 
+func TestVInfoIsEmpty(t *testing.T) {
+	vInfo := parser.VInfo{}
+	assert.Equal(t, true, vInfo.IsEmpty())
+}
+
 func TestHandleVersionInfo(t *testing.T) {
 	_, err := parser.HandleVInfo("match activesync m|^.\\0\\x01\\0[^\\0]\\0[^\\0]\\0[^\\0]\\0[^\\0]\\0[^\\0]\\0.*\\0\\0\\0$|s p/Microsoft ActiveSync/ o/Windows/ cpe:/a:microsoft:activesync/ cpe:/o:microsoft:windows/a")
 	assert.ErrorIs(t, err, nil)
 }
 
-func TestParseNmap(t *testing.T) {
+func TestParseNmapServiceProbe(t *testing.T) {
 	srcFilePath := "nmap-service-probes"
-	probes, err := parser.ParseNmap(srcFilePath)
+	probes, err := parser.ParseNmapServiceProbe(srcFilePath)
 	if err != nil {
 		panic(err)
 	}
@@ -30,10 +35,10 @@ func TestParseNmap(t *testing.T) {
 	fmt.Println(len(string(probesJSON)))
 }
 
-func TestParseNmapAndToJson(t *testing.T) {
+func TestParseNmapServiceProbeToJson(t *testing.T) {
 	readable := true
 	srcFilePath := "nmap-service-probes"
-	probes, err := parser.ParseNmap(srcFilePath)
+	probes, err := parser.ParseNmapServiceProbe(srcFilePath)
 	if err != nil {
 		panic(err)
 	}

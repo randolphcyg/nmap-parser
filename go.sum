@@ -11,6 +11,10 @@ github.com/randolphcyg/cpe v1.0.3 h1:Gy91SlIWvPPqIMF8gDq3tnhde6noO/AyKeeyLHp/tio
 github.com/randolphcyg/cpe v1.0.3/go.mod h1:R+J264JmgNtHkgKkYS12TQNgp819+OnwFUJuZUkoyio=
 github.com/randolphcyg/cpe v1.0.4 h1:yt8reQ+oLlw4bFAcRk9t2zLGE1/11RptF0AL0XT7s2s=
 github.com/randolphcyg/cpe v1.0.4/go.mod h1:R+J264JmgNtHkgKkYS12TQNgp819+OnwFUJuZUkoyio=
+github.com/randolphcyg/cpe v1.0.5 h1:WNIKWlLI4uFPLRbSiuPsS8MH4QBJC+kePdTSuZ9Ppds=
+github.com/randolphcyg/cpe v1.0.5/go.mod h1:R+J264JmgNtHkgKkYS12TQNgp819+OnwFUJuZUkoyio=
+github.com/randolphcyg/cpe v1.0.6 h1:6/jVTznDzniah986/31eGAy+STpkObmeSZ2wEQrtKP0=
+github.com/randolphcyg/cpe v1.0.6/go.mod h1:R+J264JmgNtHkgKkYS12TQNgp819+OnwFUJuZUkoyio=
 github.com/stretchr/objx v0.1.0/go.mod h1:HFkY916IF+rwdDfMAkV7OtwuqBVzrE8GR6GFx+wExME=
 github.com/stretchr/objx v0.4.0/go.mod h1:YvHI0jy2hoMjB+UWwv71VJQ9isScKT/TqJzVSSt89Yw=
 github.com/stretchr/objx v0.5.0/go.mod h1:Yh+to48EsGEfYuaHDzXPcE3xhTkx73EhmCGUpEOglKo=

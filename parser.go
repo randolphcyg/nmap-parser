@@ -11,43 +11,65 @@ import (
 	"github.com/randolphcyg/cpe"
 )
 
-// VInfo version info, include six optional fields and CPE
-type VInfo struct {
-	VendorProductName string    `json:"vendorProductName"`
-	Version           string    `json:"version"`
-	Info              string    `json:"info"`
-	Hostname          string    `json:"hostname"`
-	OperatingSystem   string    `json:"operatingSystem"`
-	DeviceType        string    `json:"deviceType"`
-	Cpe               []cpe.CPE `json:"cpe"`
+type IProbe interface {
+	IsEmpty() bool
 }
 
-type Match struct {
-	Pattern     string `json:"pattern"`
-	Name        string `json:"name"`
-	PatternFlag string `json:"patternFlag"`
-	VersionInfo VInfo  `json:"versionInfo"`
+type IParser interface {
+	IsEmpty() bool
 }
 
+// Probe nmap service probe
 type Probe struct {
 	Protocol     string   `json:"protocol"`
 	ProbeName    string   `json:"probeName"`
-	ProbeString  string   `json:"probeString"`
-	Ports        []string `json:"ports"`
-	SslPorts     []string `json:"sslPorts"`
-	TcpWrappedMs string   `json:"tcpWrappedMs"`
-	TotalWaitMs  string   `json:"totalWaitMs"`
-	Rarity       string   `json:"rarity"`
-	Fallback     string   `json:"fallback"`
-	Matches      []Match  `json:"matches"`
+	ProbeString  string   `json:"probeString,omitempty"`
+	Ports        []string `json:"ports,omitempty"`
+	SslPorts     []string `json:"sslPorts,omitempty"`
+	TcpWrappedMs string   `json:"tcpWrappedMs,omitempty"`
+	TotalWaitMs  string   `json:"totalWaitMs,omitempty"`
+	Rarity       string   `json:"rarity,omitempty"`
+	Fallback     string   `json:"fallback,omitempty"`
+	Matches      []*Match `json:"matches"`
 }
 
-func (x Probe) IsProbeEmpty() bool {
-	return reflect.DeepEqual(x, Probe{})
+// Match nmap service probe match rule
+type Match struct {
+	Pattern     string `json:"pattern"`
+	Name        string `json:"name"`
+	PatternFlag string `json:"patternFlag,omitempty"`
+	VersionInfo *VInfo `json:"versionInfo,omitempty"`
 }
 
-func (v VInfo) IsVInfoEmpty() bool {
-	return reflect.DeepEqual(v, VInfo{})
+// VInfo version info, include six optional fields and CPE
+type VInfo struct {
+	VendorProductName string     `json:"vendorProductName,omitempty"`
+	Version           string     `json:"version,omitempty"`
+	Info              string     `json:"info,omitempty"`
+	Hostname          string     `json:"hostname,omitempty"`
+	OperatingSystem   string     `json:"operatingSystem,omitempty"`
+	DeviceType        string     `json:"deviceType,omitempty"`
+	Cpe               []*cpe.CPE `json:"cpe,omitempty"`
+}
+
+func NewProbe() *Probe {
+	return &Probe{}
+}
+
+func (x *Probe) IsEmpty() bool {
+	return reflect.DeepEqual(x, &Probe{})
+}
+
+func NewMatch() *Match {
+	return &Match{}
+}
+
+func NewVInfo() *VInfo {
+	return &VInfo{}
+}
+
+func (v *VInfo) IsEmpty() bool {
+	return reflect.DeepEqual(v, &VInfo{})
 }
 
 func handleVInfoField(src, flagStr string) (string, string, error) {
@@ -72,13 +94,12 @@ func handleVInfoField(src, flagStr string) (string, string, error) {
 	return ret, srcRet, nil
 }
 
-type fieldInfo struct {
-	field string
-	set   func(string)
-}
-
-func HandleVInfo(src string) (vInfo VInfo, err error) {
-	fields := []fieldInfo{
+func HandleVInfo(src string) (vInfo *VInfo, err error) {
+	vInfo = NewVInfo()
+	fields := []struct {
+		field string
+		set   func(string)
+	}{
 		{"p/", func(v string) { vInfo.VendorProductName = v }},
 		{"v/", func(v string) { vInfo.Version = v }},
 		{"i/", func(v string) { vInfo.Info = v }},
@@ -102,13 +123,11 @@ func HandleVInfo(src string) (vInfo VInfo, err error) {
 
 	// CPE handle logic
 	cpeSrcStr := ""
-	cpeFlag := "cpe:/"
-	isCpe22FlagInSrc := strings.Index(src, cpeFlag)
+	isCpe22FlagInSrc := strings.Index(src, cpe.FlagCpe22)
 	if isCpe22FlagInSrc != -1 {
 		cpeSrcStr = src[isCpe22FlagInSrc : len(src)-1]
 	} else {
-		cpeFlag = "cpe:2.3"
-		isCpe23FlagInSrc := strings.LastIndex(src, cpeFlag)
+		isCpe23FlagInSrc := strings.LastIndex(src, cpe.FlagCpe23)
 		if isCpe23FlagInSrc != -1 {
 			cpeSrcStr = src[isCpe23FlagInSrc : len(src)-1]
 		}
@@ -121,14 +140,15 @@ func HandleVInfo(src string) (vInfo VInfo, err error) {
 			if err != nil {
 				continue
 			}
-			vInfo.Cpe = append(vInfo.Cpe, *cRet)
+			vInfo.Cpe = append(vInfo.Cpe, cRet)
 		}
 	}
 
 	return
 }
 
-func ParseMatch(line string) (m Match, err error) {
+func ParseMatch(line string) (m *Match, err error) {
+	m = NewMatch()
 	line = strings.TrimSpace(line)
 	line = strings.Replace(line, "\n", "", -1)
 	matchSeg := strings.SplitN(line, " ", 3)
@@ -137,7 +157,7 @@ func ParseMatch(line string) (m Match, err error) {
 	pattern := regxSeg[1]
 
 	patternFlag := ""
-	var versionInfo VInfo
+	versionInfo := NewVInfo()
 	if len(regxSeg) >= 3 {
 		versionInfoSeg := strings.SplitN(regxSeg[2], " ", 2)
 
@@ -148,7 +168,7 @@ func ParseMatch(line string) (m Match, err error) {
 		if len(versionInfoSeg) >= 2 {
 			tmp, errVInfo := HandleVInfo(versionInfoSeg[1])
 			if err != nil {
-				m = Match{
+				m = &Match{
 					Pattern:     pattern,
 					Name:        name,
 					PatternFlag: patternFlag,
@@ -160,7 +180,7 @@ func ParseMatch(line string) (m Match, err error) {
 		}
 	}
 
-	m = Match{
+	m = &Match{
 		Pattern:     pattern,
 		Name:        name,
 		PatternFlag: patternFlag,
@@ -170,7 +190,7 @@ func ParseMatch(line string) (m Match, err error) {
 	return
 }
 
-func ParseNmap(srcFilePath string) (probes []Probe, err error) {
+func ParseNmapServiceProbe(srcFilePath string) (probes []*Probe, err error) {
 	// Open the nmap-service-probes file
 	file, err := os.Open(srcFilePath)
 	if err != nil {
@@ -178,10 +198,10 @@ func ParseNmap(srcFilePath string) (probes []Probe, err error) {
 	}
 	defer file.Close()
 
-	probes = make([]Probe, 0, 200)
+	probes = make([]*Probe, 0, 200)
 
 	// Create an empty probe to hold current probe being parsed
-	var currentProbe Probe
+	currentProbe := NewProbe()
 
 	// Create a scanner to read the file line by line; Loop through each line of the file
 	for scanner := bufio.NewScanner(file); scanner.Scan(); {
@@ -201,18 +221,7 @@ func ParseNmap(srcFilePath string) (probes []Probe, err error) {
 				probes = append(probes, currentProbe)
 			}
 			// Create a new probe with the name and default values
-			currentProbe = Probe{
-				ProbeName:    "",
-				Protocol:     "",
-				ProbeString:  "",
-				Ports:        nil,
-				SslPorts:     nil,
-				TcpWrappedMs: "",
-				TotalWaitMs:  "",
-				Rarity:       "",
-				Fallback:     "",
-				Matches:      nil,
-			}
+			currentProbe = NewProbe()
 
 			lineSeg := strings.SplitN(line, " ", 4)
 			if lineSeg[1] != "TCP" && lineSeg[1] != "UDP" { // unsupported protocol
@@ -245,7 +254,7 @@ func ParseNmap(srcFilePath string) (probes []Probe, err error) {
 	}
 
 	// Append the last probe to the slice of probes
-	if currentProbe.IsProbeEmpty() {
+	if currentProbe.IsEmpty() {
 		return
 	}
 
@@ -266,9 +275,9 @@ func UnquoteRawString(rawStr string) (string, error) {
 }
 
 // FillVersionInfoFields Replace the versionInfo and CPE placeholder elements with the matched real values
-func FillVersionInfoFields(src [][]byte, match Match) VInfo {
+func FillVersionInfoFields(src [][]byte, match *Match) *VInfo {
 	versionInfo := match.VersionInfo
-	tmpVerInfo := VInfo{
+	tmpVerInfo := &VInfo{
 		VendorProductName: FillHelperFuncOrVariable(versionInfo.VendorProductName, src),
 		Version:           FillHelperFuncOrVariable(versionInfo.Version, src),
 		Info:              FillHelperFuncOrVariable(versionInfo.Info, src),
@@ -280,7 +289,7 @@ func FillVersionInfoFields(src [][]byte, match Match) VInfo {
 
 	if len(versionInfo.Cpe) > 0 {
 		for _, c := range versionInfo.Cpe {
-			tmpCPE := cpe.CPE{
+			tmpCPE := &cpe.CPE{
 				Version:   FillHelperFuncOrVariable(c.Version, src),
 				Language:  FillHelperFuncOrVariable(c.Language, src),
 				Vendor:    FillHelperFuncOrVariable(c.Vendor, src),
