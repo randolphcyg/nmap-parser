@@ -12,7 +12,7 @@ import (
 )
 
 func TestVInfoIsEmpty(t *testing.T) {
-	vInfo := parser.VInfo{}
+	vInfo := parser.NewVInfo()
 	assert.Equal(t, true, vInfo.IsEmpty())
 }
 
