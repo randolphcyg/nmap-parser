@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/tealeg/xlsx"
 
 	"github.com/randolphcyg/nmap-parser"
 )
@@ -125,4 +126,80 @@ func TestParseMatchVInfoFieldOutOfOrder(t *testing.T) {
 	str := "match amanda m|^ld\\.so\\.1: amandad: fatal: (libsunmath\\.so\\.1): open failed: No such file or directory\\n$| i/broken: $1 not found/ cpe:/a:amanda:amanda/ o/Windows/ p/Amanda backup system index server/\n\t"
 	match, _ := parser.ParseMatch(str)
 	assert.Equal(t, "Windows", match.VersionInfo.OperatingSystem)
+}
+
+// TestOutToExcel output probes to excel
+func TestOutToExcel(t *testing.T) {
+	file := xlsx.NewFile()
+	sheet, err := file.AddSheet("nmap-probe-support-service")
+	if err != nil {
+		panic(err)
+	}
+
+	srcFilePath := "nmap-service-probes"
+	probes, err := parser.ParseNmapServiceProbe(srcFilePath)
+	if err != nil {
+		panic(err)
+	}
+
+	sheetRowHeader := sheet.AddRow()
+	sheetRowHeader.SetHeightCM(2) // 设置行高
+
+	sheetCellHeader1 := sheetRowHeader.AddCell()
+	sheetCellHeader1.Value = "服务名"
+
+	sheetCellHeader2 := sheetRowHeader.AddCell()
+	sheetCellHeader2.Value = "版本"
+
+	sheetCellHeader3 := sheetRowHeader.AddCell()
+	sheetCellHeader3.Value = "运行设备类型"
+
+	sheetCellHeader4 := sheetRowHeader.AddCell()
+	sheetCellHeader4.Value = "供应商和服务名称"
+
+	sheetCellHeader5 := sheetRowHeader.AddCell()
+	sheetCellHeader5.Value = "更多信息"
+
+	sheetCellHeader6 := sheetRowHeader.AddCell()
+	sheetCellHeader6.Value = "服务提供的主机名"
+
+	sheetCellHeader7 := sheetRowHeader.AddCell()
+	sheetCellHeader7.Value = "CPE"
+
+	for _, probe := range probes {
+		for _, service := range probe.Matches {
+
+			sheetRow := sheet.AddRow()
+			sheetRow.SetHeightCM(1) // 设置行高
+
+			sheetCell1 := sheetRow.AddCell()
+			sheetCell1.Value = service.Name
+
+			sheetCell2 := sheetRow.AddCell()
+			sheetCell2.Value = service.VersionInfo.Version
+
+			sheetCell3 := sheetRow.AddCell()
+			sheetCell3.Value = service.VersionInfo.DeviceType
+
+			sheetCell4 := sheetRow.AddCell()
+			sheetCell4.Value = service.VersionInfo.VendorProductName
+
+			sheetCell5 := sheetRow.AddCell()
+			sheetCell5.Value = service.VersionInfo.Info
+
+			sheetCell6 := sheetRow.AddCell()
+			sheetCell6.Value = service.VersionInfo.Hostname
+
+			sheetCell7 := sheetRow.AddCell()
+			marshal, _ := json.Marshal(service.VersionInfo.Cpe)
+
+			sheetCell7.Value = string(marshal)
+
+		}
+	}
+
+	err = file.Save("nmap-probe-support-service.xlsx")
+	if err != nil {
+		panic(err)
+	}
 }
