@@ -5,6 +5,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -21,33 +22,66 @@ var (
 	ErrRecRsp     = errors.New("Error receiving response")
 )
 
+type MatchResult struct {
+	ServiceName string
+	Info        *parser.VInfo
+}
+
+// matchPattern match the rules of probe
+func matchPattern(match *parser.Match, resp []byte, wg *sync.WaitGroup, resultChan chan MatchResult) {
+	defer wg.Done()
+
+	pattern := match.Pattern
+	re, err := regexp.Compile(pattern)
+	if err != nil {
+		return
+	}
+
+	// Use regular expressions for matching
+	srcByte := re.FindSubmatch(resp)
+
+	// find the match rule
+	if len(srcByte) > 0 {
+		info := parser.FillVersionInfoFields(srcByte, match)
+		result := MatchResult{
+			ServiceName: match.Name,
+			Info:        info,
+		}
+		resultChan <- result
+	}
+}
+
 func ServiceDetect(host string, port int, probe *parser.Probe) (serviceName string, info *parser.VInfo, err error) {
-	addr := net.JoinHostPort(host, strconv.Itoa(port))
-	conn, err := net.Dial(strings.ToLower(probe.Protocol), addr)
+	// set up connection
+	conn, err := net.DialTimeout(strings.ToLower(probe.Protocol), net.JoinHostPort(host, strconv.Itoa(port)), time.Millisecond*20)
 	if err != nil {
 		err = errors.WithMessage(err, ErrConn.Error())
 		return
 	}
+	defer conn.Close()
 
-	// set connect timeout
-	timeout := time.Millisecond * 10
-	if probe.TcpWrappedMs != "" {
-		timeoutCount, _ := strconv.Atoi(probe.TcpWrappedMs)
-		timeout = time.Duration(timeoutCount)
+	// send raw request
+	newProbeString := probe.ProbeString
+	// handle custom fingerprint
+	if strings.Contains(probe.ProbeString, "{$host}") {
+		newProbeString = strings.Replace(probe.ProbeString, "{$host}", host, 1)
 	}
-	err = conn.SetDeadline(time.Now().Add(timeout))
+	payload, _ := parser.UnquoteRawString(newProbeString)
+	_, err = conn.Write([]byte(payload))
 	if err != nil {
-		err = errors.WithMessage(err, ErrSetTimeout.Error())
+		err = errors.WithMessage(err, ErrSendCmd.Error())
 		return
 	}
 
-	defer conn.Close()
-
-	// send request
-	probeStringCMD, _ := parser.UnquoteRawString(probe.ProbeString)
-	_, err = conn.Write([]byte(probeStringCMD))
+	// set read timeout
+	readTimeout := time.Millisecond * 20
+	if probe.TcpWrappedMs != "" {
+		timeoutCount, _ := strconv.Atoi(probe.TcpWrappedMs)
+		readTimeout = time.Duration(timeoutCount)
+	}
+	err = conn.SetReadDeadline(time.Now().Add(readTimeout))
 	if err != nil {
-		err = errors.WithMessage(err, ErrSendCmd.Error())
+		err = errors.WithMessage(err, ErrSetTimeout.Error())
 		return
 	}
 
@@ -59,23 +93,33 @@ func ServiceDetect(host string, port int, probe *parser.Probe) (serviceName stri
 		return
 	}
 
+	concurrencyLimit := 20                                   // concurrency of match
+	wg := sync.WaitGroup{}                                   // wait for all match task end
+	resultChan := make(chan MatchResult, len(probe.Matches)) // channel for receive result
+
+	// signal for match concurrency
+	signal := make(chan struct{}, concurrencyLimit)
+
+	// concurrency matching tasks
 	for _, match := range probe.Matches {
-		pattern := match.Pattern
-		re, errRgx := regexp.Compile(pattern)
-		if errRgx != nil {
-			continue
-		}
-		// Use regular expressions for matching
-		srcByte := re.FindSubmatch(resp[:n])
+		wg.Add(1)
+		go func(match *parser.Match) {
+			signal <- struct{}{} // get signal
+			matchPattern(match, resp[:n], &wg, resultChan)
+			<-signal // release signal
+		}(match)
+	}
 
-		// find the match rule
-		if len(srcByte) > 1 {
-			serviceName = match.Name
-			info = parser.FillVersionInfoFields(srcByte, match)
+	// wait for all match task end
+	wg.Wait()
 
-			return
-		}
+	// close channel
+	close(resultChan)
 
+	// handle match results
+	for result := range resultChan {
+		serviceName = result.ServiceName
+		info = result.Info
 	}
 
 	return
