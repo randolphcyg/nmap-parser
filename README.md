@@ -25,9 +25,10 @@ import (
 )
 
 func main() {
+	client := &parser.Client{}
 	readable := true
 	srcFilePath := "nmap-service-probes"
-	probes, err := parser.ParseNmapServiceProbe(srcFilePath)
+	probes, err := client.ParseNmapServiceProbe(srcFilePath)
 	if err != nil {
 		panic(err)
 	}
@@ -83,22 +84,8 @@ import (
 	parser "github.com/randolphcyg/nmap-parser"
 )
 
-package main
-
-import (
-"fmt"
-"net"
-"sync"
-"regexp"
-"strconv"
-"strings"
-"time"
-
-"github.com/pkg/errors"
-parser "github.com/randolphcyg/nmap-parser"
-)
-
 var (
+	client        parser.IClient = &parser.Client{}
 	ErrConn       = errors.New("Error connecting")
 	ErrSetTimeout = errors.New("Failed to set deadline")
 	ErrSendCmd    = errors.New("Error sending command")
@@ -125,7 +112,7 @@ func matchPattern(match *parser.Match, resp []byte, wg *sync.WaitGroup, resultCh
 
 	// find the match rule
 	if len(srcByte) > 0 {
-		info := parser.FillVersionInfoFields(srcByte, match)
+		info := client.FillVersionInfoFields(srcByte, match)
 		result := MatchResult{
 			ServiceName: match.Name,
 			Info:        info,
@@ -145,7 +132,7 @@ func ServiceDetect(host string, port int, probe *parser.Probe) (serviceName stri
 
 	// send raw request
 	newProbeString := probe.ProbeString
-	payload, _ := parser.UnquoteRawString(newProbeString)
+	payload, _ := client.UnquoteRawString(newProbeString)
 	_, err = conn.Write([]byte(payload))
 	if err != nil {
 		err = errors.WithMessage(err, ErrSendCmd.Error())
@@ -206,7 +193,7 @@ func ServiceDetect(host string, port int, probe *parser.Probe) (serviceName stri
 
 func main() {
 	srcFilePath := "nmap-service-probes"
-	probes, err := parser.ParseNmapServiceProbe(srcFilePath)
+	probes, err := client.ParseNmapServiceProbe(srcFilePath)
 	if err != nil {
 		panic(err)
 	}
@@ -215,7 +202,7 @@ func main() {
 	port := 6379
 
 	serviceName := ""
-	info := parser.NewVInfo()
+	info := client.NewVInfo()
 	for _, probe := range probes {
 		serviceNameTmp, infoTmp, err := ServiceDetect(host, port, probe)
 		if err != nil {

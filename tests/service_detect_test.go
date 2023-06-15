@@ -16,10 +16,11 @@ import (
 )
 
 var (
-	ErrConn       = errors.New("Error connecting")
-	ErrSetTimeout = errors.New("Failed to set deadline")
-	ErrSendCmd    = errors.New("Error sending command")
-	ErrRecRsp     = errors.New("Error receiving response")
+	client        parser.IClient = &parser.Client{}
+	ErrConn                      = errors.New("Error connecting")
+	ErrSetTimeout                = errors.New("Failed to set deadline")
+	ErrSendCmd                   = errors.New("Error sending command")
+	ErrRecRsp                    = errors.New("Error receiving response")
 )
 
 type MatchResult struct {
@@ -42,7 +43,7 @@ func matchPattern(match *parser.Match, resp []byte, wg *sync.WaitGroup, resultCh
 
 	// find the match rule
 	if len(srcByte) > 0 {
-		info := parser.FillVersionInfoFields(srcByte, match)
+		info := client.FillVersionInfoFields(srcByte, match)
 		result := MatchResult{
 			ServiceName: match.Name,
 			Info:        info,
@@ -66,7 +67,7 @@ func ServiceDetect(host string, port int, probe *parser.Probe) (serviceName stri
 	if strings.Contains(probe.ProbeString, "{$host}") {
 		newProbeString = strings.Replace(probe.ProbeString, "{$host}", host, 1)
 	}
-	payload, _ := parser.UnquoteRawString(newProbeString)
+	payload, _ := client.UnquoteRawString(newProbeString)
 	_, err = conn.Write([]byte(payload))
 	if err != nil {
 		err = errors.WithMessage(err, ErrSendCmd.Error())
@@ -127,7 +128,7 @@ func ServiceDetect(host string, port int, probe *parser.Probe) (serviceName stri
 
 func TestServiceDetect(t *testing.T) {
 	srcFilePath := "nmap-service-probes"
-	probes, err := parser.ParseNmapServiceProbe(srcFilePath)
+	probes, err := client.ParseNmapServiceProbe(srcFilePath)
 	if err != nil {
 		panic(err)
 	}
@@ -136,7 +137,7 @@ func TestServiceDetect(t *testing.T) {
 	targetPort := 6379
 
 	serviceName := ""
-	info := parser.NewVInfo()
+	info := client.NewVInfo()
 	for _, probe := range probes {
 		serviceNameTmp, infoTmp, err := ServiceDetect(host, targetPort, probe)
 		if err != nil {

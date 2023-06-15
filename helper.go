@@ -16,8 +16,8 @@ var (
 
 var patternFlags = []string{pNum, pHelpP, pHelpSubst, pHelpI}
 
-// HelperP Filters out unprintable characters.
-func HelperP(str string) string {
+// helperP Filters out unprintable characters.
+func helperP(str string) string {
 	var sb strings.Builder
 	for _, r := range str {
 		if unicode.IsPrint(r) {
@@ -28,13 +28,13 @@ func HelperP(str string) string {
 	return sb.String()
 }
 
-// HelperSubst Makes substitutions in matches before they are printed.
-func HelperSubst(input, searchStr, replaceStr string) string {
+// helperSubst Makes substitutions in matches before they are printed.
+func helperSubst(input, searchStr, replaceStr string) string {
 	return strings.ReplaceAll(input, searchStr, replaceStr)
 }
 
-// HelperI Unpacks an unsigned integer from the captured bytes.
-func HelperI(sign string, b []byte) (val uint32) {
+// helperI Unpacks an unsigned integer from the captured bytes.
+func helperI(sign string, b []byte) (val uint32) {
 	for i := 0; i < len(b); i++ {
 		if sign == ">" {
 			val += uint32(b[i]) << uint(8*(len(b)-1-i))
@@ -49,7 +49,7 @@ func HelperI(sign string, b []byte) (val uint32) {
 }
 
 // FillHelperFuncOrVariable replace versionInfo helper functions and Variable
-func FillHelperFuncOrVariable(str string, src [][]byte) string {
+func (c *Client) FillHelperFuncOrVariable(str string, src [][]byte) string {
 	if len(str) == 0 {
 		return str
 	}
@@ -80,7 +80,7 @@ func FillHelperFuncOrVariable(str string, src [][]byte) string {
 				}
 			case pHelpP:
 				{
-					str = strings.ReplaceAll(str, match, HelperP(string(src[tmpNum])))
+					str = strings.ReplaceAll(str, match, helperP(string(src[tmpNum])))
 				}
 			case pHelpSubst:
 				{
@@ -90,7 +90,7 @@ func FillHelperFuncOrVariable(str string, src [][]byte) string {
 					}
 					matchC := reC.FindAllString(match, -1)
 					if len(matchC) == 2 {
-						str = strings.ReplaceAll(str, match, HelperSubst(string(src[tmpNum]), strings.Trim(matchC[0], "\""), strings.Trim(matchC[1], "\"")))
+						str = strings.ReplaceAll(str, match, helperSubst(string(src[tmpNum]), strings.Trim(matchC[0], "\""), strings.Trim(matchC[1], "\"")))
 					}
 
 				}
@@ -103,7 +103,7 @@ func FillHelperFuncOrVariable(str string, src [][]byte) string {
 					matchC := reC.FindAllString(match, -1)
 					if len(matchC) == 1 {
 						ele := strings.Trim(matchC[0], "\"")
-						str = strings.ReplaceAll(str, match, strconv.Itoa(int(HelperI(ele, src[tmpNum]))))
+						str = strings.ReplaceAll(str, match, strconv.Itoa(int(helperI(ele, src[tmpNum]))))
 					}
 				}
 			}

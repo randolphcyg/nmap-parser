@@ -16,3 +16,4 @@
 
 # do not upload convert result file
 *.json
+*.xlsx

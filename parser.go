@@ -11,6 +11,21 @@ import (
 	"github.com/randolphcyg/cpe"
 )
 
+type Client struct {
+}
+
+type IClient interface {
+	NewProbe() *Probe
+	NewMatch() *Match
+	NewVInfo() *VInfo
+	HandleVInfo(src string) (vInfo *VInfo, err error)
+	ParseMatch(line string) (m *Match, err error)
+	ParseNmapServiceProbe(srcFilePath string) (probes []*Probe, err error)
+	UnquoteRawString(rawStr string) (string, error)
+	FillVersionInfoFields(src [][]byte, match *Match) *VInfo
+	FillHelperFuncOrVariable(str string, src [][]byte) string
+}
+
 type IProbe interface {
 	IsEmpty() bool
 }
@@ -52,7 +67,7 @@ type VInfo struct {
 	Cpe               []*cpe.CPE `json:"cpe,omitempty"`
 }
 
-func NewProbe() *Probe {
+func (c *Client) NewProbe() *Probe {
 	return &Probe{}
 }
 
@@ -60,11 +75,11 @@ func (x *Probe) IsEmpty() bool {
 	return reflect.DeepEqual(x, &Probe{})
 }
 
-func NewMatch() *Match {
+func (c *Client) NewMatch() *Match {
 	return &Match{}
 }
 
-func NewVInfo() *VInfo {
+func (c *Client) NewVInfo() *VInfo {
 	return &VInfo{}
 }
 
@@ -94,8 +109,8 @@ func handleVInfoField(src, flagStr string) (string, string, error) {
 	return ret, srcRet, nil
 }
 
-func HandleVInfo(src string) (vInfo *VInfo, err error) {
-	vInfo = NewVInfo()
+func (c *Client) HandleVInfo(src string) (vInfo *VInfo, err error) {
+	vInfo = c.NewVInfo()
 	fields := []struct {
 		field string
 		set   func(string)
@@ -147,8 +162,8 @@ func HandleVInfo(src string) (vInfo *VInfo, err error) {
 	return
 }
 
-func ParseMatch(line string) (m *Match, err error) {
-	m = NewMatch()
+func (c *Client) ParseMatch(line string) (m *Match, err error) {
+	m = c.NewMatch()
 	line = strings.TrimSpace(line)
 	line = strings.Replace(line, "\n", "", -1)
 	matchSeg := strings.SplitN(line, " ", 3)
@@ -157,7 +172,7 @@ func ParseMatch(line string) (m *Match, err error) {
 	pattern := regxSeg[1]
 
 	patternFlag := ""
-	versionInfo := NewVInfo()
+	versionInfo := c.NewVInfo()
 	if len(regxSeg) >= 3 {
 		versionInfoSeg := strings.SplitN(regxSeg[2], " ", 2)
 
@@ -166,7 +181,7 @@ func ParseMatch(line string) (m *Match, err error) {
 		}
 
 		if len(versionInfoSeg) >= 2 {
-			tmp, errVInfo := HandleVInfo(versionInfoSeg[1])
+			tmp, errVInfo := c.HandleVInfo(versionInfoSeg[1])
 			if err != nil {
 				m = &Match{
 					Pattern:     pattern,
@@ -190,7 +205,7 @@ func ParseMatch(line string) (m *Match, err error) {
 	return
 }
 
-func ParseNmapServiceProbe(srcFilePath string) (probes []*Probe, err error) {
+func (c *Client) ParseNmapServiceProbe(srcFilePath string) (probes []*Probe, err error) {
 	// Open the nmap-service-probes file
 	file, err := os.Open(srcFilePath)
 	if err != nil {
@@ -201,7 +216,7 @@ func ParseNmapServiceProbe(srcFilePath string) (probes []*Probe, err error) {
 	probes = make([]*Probe, 0, 200)
 
 	// Create an empty probe to hold current probe being parsed
-	currentProbe := NewProbe()
+	currentProbe := c.NewProbe()
 
 	// Create a scanner to read the file line by line; Loop through each line of the file
 	for scanner := bufio.NewScanner(file); scanner.Scan(); {
@@ -221,7 +236,7 @@ func ParseNmapServiceProbe(srcFilePath string) (probes []*Probe, err error) {
 				probes = append(probes, currentProbe)
 			}
 			// Create a new probe with the name and default values
-			currentProbe = NewProbe()
+			currentProbe = c.NewProbe()
 
 			lineSeg := strings.SplitN(line, " ", 4)
 			if lineSeg[1] != "TCP" && lineSeg[1] != "UDP" { // unsupported protocol
@@ -233,7 +248,7 @@ func ParseNmapServiceProbe(srcFilePath string) (probes []*Probe, err error) {
 			probeString := strings.TrimSuffix(probeStringSrc, "|")
 			currentProbe.ProbeString = probeString
 		case strings.HasPrefix(line, "match "), strings.HasPrefix(line, "softmatch "):
-			m, err := ParseMatch(line)
+			m, err := c.ParseMatch(line)
 			if err != nil {
 				continue
 			}
@@ -265,7 +280,7 @@ func ParseNmapServiceProbe(srcFilePath string) (probes []*Probe, err error) {
 
 // UnquoteRawString raw string ==> string
 // Replaces the escape characters in the original string with the actual characters
-func UnquoteRawString(rawStr string) (string, error) {
+func (c *Client) UnquoteRawString(rawStr string) (string, error) {
 	str, err := strconv.Unquote(`"` + rawStr + `"`)
 	if err != nil {
 		return "", err
@@ -275,30 +290,30 @@ func UnquoteRawString(rawStr string) (string, error) {
 }
 
 // FillVersionInfoFields Replace the versionInfo and CPE placeholder elements with the matched real values
-func FillVersionInfoFields(src [][]byte, match *Match) *VInfo {
+func (c *Client) FillVersionInfoFields(src [][]byte, match *Match) *VInfo {
 	versionInfo := match.VersionInfo
 	tmpVerInfo := &VInfo{
-		VendorProductName: FillHelperFuncOrVariable(versionInfo.VendorProductName, src),
-		Version:           FillHelperFuncOrVariable(versionInfo.Version, src),
-		Info:              FillHelperFuncOrVariable(versionInfo.Info, src),
-		Hostname:          FillHelperFuncOrVariable(versionInfo.Hostname, src),
-		OperatingSystem:   FillHelperFuncOrVariable(versionInfo.OperatingSystem, src),
-		DeviceType:        FillHelperFuncOrVariable(versionInfo.DeviceType, src),
+		VendorProductName: c.FillHelperFuncOrVariable(versionInfo.VendorProductName, src),
+		Version:           c.FillHelperFuncOrVariable(versionInfo.Version, src),
+		Info:              c.FillHelperFuncOrVariable(versionInfo.Info, src),
+		Hostname:          c.FillHelperFuncOrVariable(versionInfo.Hostname, src),
+		OperatingSystem:   c.FillHelperFuncOrVariable(versionInfo.OperatingSystem, src),
+		DeviceType:        c.FillHelperFuncOrVariable(versionInfo.DeviceType, src),
 		Cpe:               nil,
 	}
 
 	if len(versionInfo.Cpe) > 0 {
-		for _, c := range versionInfo.Cpe {
+		for _, item := range versionInfo.Cpe {
 			tmpCPE := &cpe.CPE{
-				Version:   FillHelperFuncOrVariable(c.Version, src),
-				Language:  FillHelperFuncOrVariable(c.Language, src),
-				Vendor:    FillHelperFuncOrVariable(c.Vendor, src),
-				Update:    FillHelperFuncOrVariable(c.Update, src),
-				Other:     FillHelperFuncOrVariable(c.Other, src),
-				TargetSw:  FillHelperFuncOrVariable(c.TargetSw, src),
-				SwEdition: FillHelperFuncOrVariable(c.SwEdition, src),
-				TargetHw:  FillHelperFuncOrVariable(c.TargetHw, src),
-				Product:   FillHelperFuncOrVariable(c.Product, src),
+				Version:   c.FillHelperFuncOrVariable(item.Version, src),
+				Language:  c.FillHelperFuncOrVariable(item.Language, src),
+				Vendor:    c.FillHelperFuncOrVariable(item.Vendor, src),
+				Update:    c.FillHelperFuncOrVariable(item.Update, src),
+				Other:     c.FillHelperFuncOrVariable(item.Other, src),
+				TargetSw:  c.FillHelperFuncOrVariable(item.TargetSw, src),
+				SwEdition: c.FillHelperFuncOrVariable(item.SwEdition, src),
+				TargetHw:  c.FillHelperFuncOrVariable(item.TargetHw, src),
+				Product:   c.FillHelperFuncOrVariable(item.Product, src),
 			}
 
 			tmpVerInfo.Cpe = append(tmpVerInfo.Cpe, tmpCPE)
